@@ -1,0 +1,196 @@
+services:
+  sec:
+    build: ./dockers/sec
+    init: true
+    networks:
+      routed:
+        ipv4_address: ${SECURENET_HOST_IP}
+    tty: true
+    command: ['/bin/bash', '/config/configure-sec.sh']
+    depends_on:
+    - mitm
+    volumes:
+    - ./config/resolv.conf:/etc/resolv.conf
+    - ./config:/config
+    - ./code/sec:/code/sec
+    environment:
+    - SECURE_NET=${SECURE_NET}
+    - SECURENET_GATEWAY=${SECURENET_GATEWAY}
+    - INSECURE_NET=${INSECURE_NET}
+    - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
+    - SECURENET_HOST_IP=${SECURENET_HOST_IP}
+    - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    cap_add:
+    - NET_ADMIN
+  mitm:
+    build: ./dockers/mitm
+    init: true
+    networks:
+      exnet:
+        priority: 1000
+      routed:
+        priority: 900
+      intnet:
+        priority: 800
+    command: ['/bin/bash', '/config/configure-mitm.sh']
+    volumes:
+    - ./config/resolv.conf:/config/resolv.conf
+    - ./config:/config
+    - ./code/mitm:/code/mitm
+    cap_add:
+    - NET_ADMIN
+    privileged: true
+    environment:
+    - SECURE_NET=${SECURE_NET}
+    - SECURENET_GATEWAY=${SECURENET_GATEWAY}
+    - INSECURE_NET=${INSECURE_NET}
+    - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
+    - SECURENET_HOST_IP=${SECURENET_HOST_IP}
+    - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    - NATS_SURVEYOR_SERVERS=${NATS_SURVEYOR_SERVERS}
+
+
+
+  go-processor:
+    build: ./dockers/go-processor
+    init: true
+    networks:
+      intnet:
+    command: ['/bin/bash', '/config/configure-processor.sh']
+    volumes:
+    - ./config:/config
+    - ./code/go-processor:/code/go-processor
+    environment:
+    - SECURE_NET=${SECURE_NET}
+    - SECURENET_GATEWAY=${SECURENET_GATEWAY}
+    - INSECURE_NET=${INSECURE_NET}
+    - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
+    - SECURENET_HOST_IP=${SECURENET_HOST_IP}
+    - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    - NATS_SURVEYOR_SERVERS=${NATS_SURVEYOR_SERVERS}
+
+
+  python-processor:
+    build: ./dockers/python-processor
+    init: true
+    networks:
+      intnet:
+    command: ['/bin/bash', '/config/configure-processor.sh']
+    volumes:
+    - ./config:/config
+    - ./code/python-processor:/code/python-processor
+    environment:
+    - SECURE_NET=${SECURE_NET}
+    - SECURENET_GATEWAY=${SECURENET_GATEWAY}
+    - INSECURE_NET=${INSECURE_NET}
+    - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
+    - SECURENET_HOST_IP=${SECURENET_HOST_IP}
+    - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    - NATS_SURVEYOR_SERVERS=${NATS_SURVEYOR_SERVERS}
+
+
+  insec:
+    build: ./dockers/insec
+    init: true
+    tty: true
+    command: ['/bin/bash', '/config/configure-insec.sh']
+    volumes:
+    - ./config:/config
+    - ./code/insec:/code/insec
+    networks:
+      exnet:
+        ipv4_address: ${INSECURENET_HOST_IP}
+    environment:
+    - SECURE_NET=${SECURE_NET}
+    - SECURENET_GATEWAY=${SECURENET_GATEWAY}
+    - INSECURE_NET=${INSECURE_NET}
+    - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
+    - SECURENET_HOST_IP=${SECURENET_HOST_IP}
+    - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    cap_add:
+    - NET_ADMIN
+
+
+  nats:
+    image: nats:alpine
+    container_name: nats
+    restart: always
+    command: -c /etc/nats/nats.conf
+    ports:
+      - "4222:4222" # client port
+      - "6222:6222" # cluster port
+      - "8222:8222" # monitoring port
+    volumes:
+      - ./nats/nats.conf:/etc/nats/nats.conf
+      - $JETSTREAM_STORAGE:/data
+    networks:
+      - intnet
+
+  surveyor:
+    image: natsio/nats-surveyor:${SURVEYOR_DOCKER_TAG}
+    container_name: nats-surveyor
+    restart: always
+    volumes:
+      - ./nats/observations:/observations
+      - ./nats/jetstream:/jetstream
+    command: --count ${NATS_SURVEYOR_SERVER_COUNT} -s "${NATS_SURVEYOR_SERVERS}" --accounts --observe /observations --jetstream /jetstream    
+#    command: --count ${NATS_SURVEYOR_SERVER_COUNT} --creds /etc/surveyor/SYS.creds -s "${NATS_SURVEYOR_SERVERS}" --accounts --observe /observations --jetstream /jetstream    
+    networks:
+      - intnet
+    labels:
+      org.label-schema.group: "nats-monitoring"
+    depends_on:
+      - nats
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_DOCKER_TAG}
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./nats/prometheus/:/etc/prometheus/
+      - $PROMETHEUS_STORAGE:/usr/local/share/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/usr/local/share/prometheus    
+    networks:
+      - intnet
+    labels:
+      org.label-schema.group: "nats-monitoring"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - surveyor
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_DOCKER_TAG}
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config:/config
+      - ./nats/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./nats/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - intnet
+    labels:
+      org.label-schema.group: "nats-monitoring"
+    depends_on:
+      - prometheus
+
+networks:
+  routed:
+    name: routed
+    driver: macvlan
+    ipam:
+      config:
+        - subnet: ${SECURE_NET}
+          gateway: ${SECURENET_GATEWAY}
+  exnet:
+    name: exnet
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${INSECURE_NET}
+          gateway: ${INSECURENET_GATEWAY}
+  intnet:
+    name: intnet
+    driver: bridge
