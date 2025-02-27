@@ -133,7 +133,7 @@ int main() {
     }
     else
     {
-        printf("Switch configuration successful; will create ethernet raw sockets and NATS connections\n");
+        printf("Switch configuration successful\n");
     }
 
     // CONFIGURE RAW SOCKETS, create raw sockets for ethsec and ethinsec
@@ -144,7 +144,7 @@ int main() {
     }
     else
     {
-        printf("Raw socket configuration successful; will create ethernet raw sockets and NATS connections\n");
+        printf("Raw socket configuration successful\n");
     }
 
     // CONFIGURE NATS CONNECTION, create NATS connection and subscriptions
@@ -155,7 +155,7 @@ int main() {
     }
     else
     {
-        printf("NATS configuration successful; will create ethernet raw sockets and NATS connections\n");
+        printf("NATS configuration successful\n");
     }
 
     pthread_t thread1, thread2;
@@ -428,9 +428,7 @@ char *get_interface_for_subnet(char *subnet) {
     char *interface = (char *)malloc(IFNAMSIZ);
     // Shell command to list interfaces and fetch the interface name that has the subnet
     // Run the shell command to find the interface name
-    char *subnet_ip = strtok(subnet, "/");
-    char *subnet_prefix = strtok(NULL, "/");
-    snprintf(path, sizeof(path), "ip -o -4 addr list | awk '{print $2, $4}' | while read iface ip; do ipcalc -n $ip | grep -q %s && echo $iface; done", subnet_ip);
+    snprintf(path, sizeof(path), "ip route | grep %s | awk '{print $3}'", subnet);
     fp = popen(path, "r");
     if (fp == NULL) {
         perror("Failed to run command");

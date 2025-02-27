@@ -112,7 +112,7 @@ services:
 
 
   nats:
-    image: nats:alpine
+    image: nats:latest
     container_name: nats
     restart: always
     command: -c /etc/nats/nats.conf
@@ -133,7 +133,7 @@ services:
     volumes:
       - ./nats/observations:/observations
       - ./nats/jetstream:/jetstream
-    command: --count ${NATS_SURVEYOR_SERVER_COUNT} -s "${NATS_SURVEYOR_SERVERS}" --accounts --observe /observations --jetstream /jetstream    
+    command: --count ${NATS_SURVEYOR_SERVER_COUNT} -s "${NATS_SURVEYOR_SERVERS}" --accounts true --observe /observations --jetstream /jetstream    
 #    command: --count ${NATS_SURVEYOR_SERVER_COUNT} --creds /etc/surveyor/SYS.creds -s "${NATS_SURVEYOR_SERVERS}" --accounts --observe /observations --jetstream /jetstream    
     networks:
       - intnet
