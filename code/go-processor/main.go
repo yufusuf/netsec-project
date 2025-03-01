@@ -20,10 +20,31 @@ func processEthernetPacket(nc *nats.Conn, iface string, data []byte) {
 		fmt.Println("Error decoding some part of the packet:", packet.ErrorLayer().Error())
 		return
 	}
-	// Iterate over all layers, printing out each layer type and its contents
-	for _, layer := range packet.Layers() {
-		fmt.Println("Layer type:", layer.LayerType())
-		fmt.Println(gopacket.LayerDump(layer))
+	// Check for Ethernet layer
+	if ethernetLayer := packet.Layer(layers.LayerTypeEthernet); ethernetLayer != nil {
+		fmt.Println("Ethernet layer detected.")
+		fmt.Println(gopacket.LayerDump(ethernetLayer))
+	}
+
+	// Check for IP layer
+	if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+		fmt.Println("IPv4 layer detected.")
+		fmt.Println(gopacket.LayerDump(ipLayer))
+	} else if ipLayer := packet.Layer(layers.LayerTypeIPv6); ipLayer != nil {
+		fmt.Println("IPv6 layer detected.")
+		fmt.Println(gopacket.LayerDump(ipLayer))
+	}
+
+	// Check for TCP layer
+	if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+		fmt.Println("TCP layer detected.")
+		fmt.Println(gopacket.LayerDump(tcpLayer))
+	}
+
+	// Check for UDP layer
+	if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
+		fmt.Println("UDP layer detected.")
+		fmt.Println(gopacket.LayerDump(udpLayer))
 	}
 	// Publish the processed packet to the appropriate subject
 	var subject string
