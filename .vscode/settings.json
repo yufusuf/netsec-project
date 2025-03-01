@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.rst": "restructuredtext",
+        "udp.h": "c"
+    }
+}

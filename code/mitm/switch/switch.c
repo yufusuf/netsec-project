@@ -95,8 +95,10 @@
 
 int sock_raw_ethsec;
 int sock_raw_ethinsec;
-unsigned char *mac_ethsec;
-unsigned char *mac_ethinsec;
+unsigned char mac_ethsec[6];
+unsigned char mac_ethinsec[6];
+unsigned char mac_secure_net_host[6];
+unsigned char mac_insecure_net_host[6];
 
 void *capture_packets(void *arg);
 void handle_packet_from_nats(natsConnection *nc, natsSubscription *sub, natsMsg *msg, void *closure);
@@ -117,8 +119,7 @@ char *insecure_net_host_ip;
 char *secure_net_subnet;
 char *insecure_net_subnet;
 char *nats_url;
-unsigned char mac_secure_net_host[6];
-unsigned char mac_insecure_net_host[6];
+
 natsConnection *conn = NULL;
 natsOptions *opts = NULL;
 
@@ -235,14 +236,17 @@ void handle_packet_from_nats(natsConnection *nc, natsSubscription *sub, natsMsg 
     char * outiface;
     if (strcmp(natsMsg_GetSubject(msg), "outpktsec") == 0) {
         memcpy(eth->h_dest, mac_secure_net_host, 6);
+        //memcpy(eth->h_source, mac_ethsec, 6);
+
         outiface = ethsec;
-        if (sendto(sock_raw_ethsec, buffer, size, 0, NULL, 0) < 0) {
+        if (sendto(sock_raw_ethsec, buffer, size, MSG_DONTROUTE, NULL, 0) < 0) {
             perror("Sendto error for ethsec");
         }
     } else if (strcmp(natsMsg_GetSubject(msg), "outpktinsec") == 0) {
         memcpy(eth->h_dest, mac_insecure_net_host, 6);
+        //memcpy(eth->h_source, mac_ethinsec, 6);
         outiface = ethinsec;
-        if (sendto(sock_raw_ethinsec, buffer, size, 0, NULL, 0) < 0) {
+        if (sendto(sock_raw_ethinsec, buffer, size, MSG_DONTROUTE, NULL, 0) < 0) {
             perror("Sendto error for ethinsec");
         }
     }
@@ -357,7 +361,8 @@ bool configureRawSockets() {
         perror("ioctl error for getting MAC address of ethsec");
         configured = false;
     }
-    mac_ethsec = (unsigned char *)ifr_ethsec.ifr_hwaddr.sa_data;
+    memcpy(mac_ethsec, ifr_ethsec.ifr_hwaddr.sa_data, 6);
+
     printf("MAC address of ethsec: %02x:%02x:%02x:%02x:%02x:%02x\n",
            mac_ethsec[0], mac_ethsec[1], mac_ethsec[2], mac_ethsec[3], mac_ethsec[4], mac_ethsec[5]);
     
@@ -382,7 +387,8 @@ bool configureRawSockets() {
         perror("ioctl error for getting MAC address of ethinsec");
         configured = false;
     }
-    mac_ethinsec = (unsigned char *)ifr_ethinsec.ifr_hwaddr.sa_data;
+    memcpy(mac_ethinsec, ifr_ethinsec.ifr_hwaddr.sa_data, 6);
+
     printf("MAC address of ethinsec: %02x:%02x:%02x:%02x:%02x:%02x\n",
            mac_ethinsec[0], mac_ethinsec[1], mac_ethinsec[2], mac_ethinsec[3], mac_ethinsec[4], mac_ethinsec[5]);
 
@@ -467,7 +473,7 @@ void query_mac_address(char *interface, char *host_ip, unsigned char *mac_addres
 void print_packet(unsigned char *buffer, int size, char *iface, bool is_outgoing)
 {
     struct ethhdr *eth = (struct ethhdr *)buffer;
-    /*
+    
     if (ntohs(eth->h_proto) == ETH_P_IP) {
         struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
         if (is_outgoing)
@@ -520,7 +526,8 @@ void print_packet(unsigned char *buffer, int size, char *iface, bool is_outgoing
         }
             
     }
-        */
+    
+        
         const char *protocol_name;
         switch (ntohs(eth->h_proto)) {
             case ETH_P_IP:

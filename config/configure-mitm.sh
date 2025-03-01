@@ -11,8 +11,8 @@ sysctl -p
 make clean
 make
 
-$(./switch >& /proc/1/fd/1)
+#$(./switch >& /proc/1/fd/1)
 
-#while true; 
-#    do sleep 0.01;
-#    done
+while true; 
+    do sleep 0.01;
+    done

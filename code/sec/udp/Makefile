@@ -1,13 +1,13 @@
-SNIFFER = tcp_receiver
+SNIFFER = udp_sender
 
-SRC = tcp_receiver.c
+SRC = udp_sender.c
 OBJ = $(SRC:.c=.o)
 
 CC = cc
 RM = rm
 
 CFLAGS = -g
-LIBS = -lpthread
+LIBS = -lpcap
 LDFLAGS =
 
 

@@ -1,6 +1,6 @@
-SNIFFER = tcp_receiver
+SNIFFER = udp_receiver
 
-SRC = tcp_receiver.c
+SRC = udp_receiver.c
 OBJ = $(SRC:.c=.o)
 
 CC = cc

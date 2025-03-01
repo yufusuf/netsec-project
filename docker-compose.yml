@@ -11,7 +11,6 @@ services:
     depends_on:
     - mitm
     volumes:
-    - ./config/resolv.conf:/etc/resolv.conf
     - ./config:/config
     - ./code/sec:/code/sec
     environment:
@@ -21,6 +20,7 @@ services:
     - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
     - SECURENET_HOST_IP=${SECURENET_HOST_IP}
     - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    privileged: true
     cap_add:
     - NET_ADMIN
   mitm:
@@ -30,14 +30,15 @@ services:
     networks:
       exnet:
         priority: 1000
+        #ipv4_address: ${INSECURENET_HOST_IP}
       routed:
         priority: 900
+        #ipv4_address: ${SECURENET_HOST_IP}
       intnet:
         priority: 800
     command: ['/bin/bash', '/config/configure-mitm.sh']
     #command: ['/code/mitm/switch/switch', '>& /proc/1/fd/1']
     volumes:
-    - ./config/resolv.conf:/config/resolv.conf
     - ./config:/config
     - ./code/mitm:/code/mitm
     cap_add:
@@ -113,6 +114,7 @@ services:
     - INSECURENET_GATEWAY=${INSECURENET_GATEWAY}
     - SECURENET_HOST_IP=${SECURENET_HOST_IP}
     - INSECURENET_HOST_IP=${INSECURENET_HOST_IP}
+    privileged: true
     cap_add:
     - NET_ADMIN
 
@@ -186,13 +188,15 @@ networks:
   routed:
     name: routed
     driver: macvlan
+    enable_ipv6: false
     ipam:
       config:
         - subnet: ${SECURE_NET}
           gateway: ${SECURENET_GATEWAY}
   exnet:
     name: exnet
-    driver: bridge
+    driver: macvlan
+    enable_ipv6: false
     ipam:
       config:
         - subnet: ${INSECURE_NET}
@@ -200,3 +204,8 @@ networks:
   intnet:
     name: intnet
     driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: ${NATS_NET}
+          gateway: ${NATS_GATEWAY}
