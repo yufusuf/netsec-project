@@ -5,7 +5,7 @@ import time
 def udp_sender():
     host = os.getenv('INSECURENET_HOST_IP')
     port = 8888
-    message = "Hello, SecureNet!"
+    message = "Hello, InSecureNet!"
 
     if not host:
         print("SECURENET_HOST_IP environment variable is not set.")

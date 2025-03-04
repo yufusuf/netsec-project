@@ -14,7 +14,7 @@ def start_udp_listener():
         data, address = sock.recvfrom(4096)
         print(f"Received {len(data)} bytes from {address}")
         print(data.decode())
-        
+        data = "Hi SecureNet!".encode()
         if data:
             sent = sock.sendto(data, address)
             print(f"Sent {sent} bytes back to {address}")
