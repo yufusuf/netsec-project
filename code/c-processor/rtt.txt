@@ -1,0 +1,41 @@
+lambda  = 1
+rtt min/avg/max/mdev = 339.776/7584.346/9815.589/2369.671 ms, pipe 10
+
+lambda  = 2
+rtt min/avg/max/mdev = 212.761/1661.333/4236.702/1039.260 ms, pipe 5
+
+lambda = 4
+rtt min/avg/max/mdev = 34.666/437.041/1051.609/286.345 ms, pipe 2
+
+lambda = 32
+rtt min/avg/max/mdev = 19.693/69.774/129.713/29.152 ms
+
+lambda = 100
+rtt min/avg/max/mdev = 6.598/21.868/60.776/12.507 ms
+
+lambda = 1000
+rtt min/avg/max/mdev = 3.541/5.263/9.711/1.543 ms
+
+lambda = 10000
+rtt min/avg/max/mdev = 3.499/3.615/3.974/0.112 ms
+
+lambda = 100000
+rtt min/avg/max/mdev = 3.510/3.640/3.946/0.123 ms
+
+lambda = 1000000
+rtt min/avg/max/mdev = 3.702/3.809/3.955/0.060 ms
+
+lambda = 10000000
+rtt min/avg/max/mdev = 3.384/3.798/3.962/0.112 ms
+
+lambda = no_delay
+rtt min/avg/max/mdev = 3.517/3.794/4.014/0.112 ms
+
+
+
+
+
+
+
+
+
