@@ -20,6 +20,83 @@ double get_expo_random(double lambda)
     u = rand() / (RAND_MAX + 1.0);
     return -log(1 - u) / lambda;
 }
+double read_tcp_timestamp(struct tcphdr *tcph)
+{
+    int i;
+    unsigned int tcp_header_len;
+    unsigned int options_len;
+    unsigned char *options;
+    unsigned char kind;
+    unsigned int option_len;
+    uint32_t tsval;
+
+    tcp_header_len = (unsigned int)tcph->doff * 4;
+    if (tcp_header_len <= 20)
+        return -1;
+
+    options = (unsigned char *)(tcph + 20);
+    options_len = tcp_header_len - 20;
+
+    i = 0;
+    while (i < options_len) {
+        kind = options[i];
+        if (kind == TCPOPT_EOL)
+            break;
+        else if (kind == TCPOPT_NOP) {
+            i++;
+            continue;
+        }
+        else {
+            option_len = options[i + 1];
+            if (kind == TCPOPT_TIMESTAMP) {
+                if (i + 1 >= options_len)
+                    break;
+                tsval = ntohl(*(uint32_t *)(options + i + 2));
+                return tsval;
+            }
+            i += option_len;
+        }
+    }
+    return -1;
+}
+unsigned short compute_tcp_checksum(unsigned char *buffer)
+{
+    // code taken from https://gist.github.com/david-hoze/0c7021434796997a4ca42d7731a7073a
+    struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
+    struct tcphdr *tcph = (struct tcphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
+    register unsigned long sum = 0;
+    unsigned short tcp_len = ntohs(iph->tot_len) - (iph->ihl << 2);
+    unsigned short *ip_payload = (unsigned short *)(tcph);
+    // add the pseudo header
+    // the source ip
+    sum += (iph->saddr >> 16) & 0xFFFF;
+    sum += (iph->saddr) & 0xFFFF;
+    // the dest ip
+    sum += (iph->daddr >> 16) & 0xFFFF;
+    sum += (iph->daddr) & 0xFFFF;
+    // protocol and reserved: 6
+    sum += htons(IPPROTO_TCP);
+    // the length
+    sum += htons(tcp_len);
+
+    // add the IP payload
+    // initialize checksum to 0
+    tcph->check = 0;
+    while (tcp_len > 1) {
+        sum += *ip_payload++;
+        tcp_len -= 2;
+    }
+    // if any bytes left, pad the bytes and add
+    if (tcp_len > 0) {
+        sum += ((*ip_payload) & htons(0xFF00));
+    }
+    // Fold 32-bit sum to 16 bits: add carrier to result
+    while (sum >> 16) {
+        sum = (sum & 0xffff) + (sum >> 16);
+    }
+    sum = ~sum;
+    return sum;
+}
 void print_packet(unsigned char *buffer, int size, char *iface, bool is_outgoing)
 {
     struct ethhdr *eth = (struct ethhdr *)buffer;
@@ -60,6 +137,7 @@ void print_packet(unsigned char *buffer, int size, char *iface, bool is_outgoing
             printf("   |-Window            : %d\n", ntohs(tcph->window));
             printf("   |-Checksum          : %d\n", ntohs(tcph->check));
             printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
+            printf("   |-TIME STAMP        : %f\n", read_tcp_timestamp(tcph));
         }
         else if (iph->protocol == IPPROTO_UDP) {
             struct udphdr *udph = (struct udphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
@@ -124,8 +202,15 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
     // double sleep_time = get_expo_random(lambda);
     // usleep((double)(sleep_time * 1e6));
 
+    struct iphdr *iph = (struct iphdr *)(data + sizeof(struct ethhdr));
+    if (iph->protocol == IPPROTO_TCP) {
+        struct tcphdr *tcph = (struct tcphdr *)(data + iph->ihl * 4 + sizeof(struct ethhdr));
+        unsigned short checksum = compute_tcp_checksum(data);
+        tcph->check = checksum;
+    }
     if (strcmp(natsMsg_GetSubject(msg), "inpktsec") == 0) {
         strncpy(outiface, "eth1", 5);
+
         s = natsConnection_Publish(conn, "outpktinsec", data, len);
         if (s != NATS_OK) {
             fprintf(stderr, "Error publishing packet to NATS: %s\n", natsStatus_GetText(s));
