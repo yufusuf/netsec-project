@@ -28,13 +28,13 @@ double read_tcp_timestamp(struct tcphdr *tcph)
     unsigned char *options;
     unsigned char kind;
     unsigned int option_len;
-    uint32_t tsval;
+    uint32_t *tsval;
 
-    tcp_header_len = (unsigned int)tcph->doff * 4;
-    if (tcp_header_len <= 20)
+    if (tcph->doff <= 5)
         return -1;
 
-    options = (unsigned char *)(tcph + 20);
+    options = (unsigned char *)tcph + 20;
+    tcp_header_len = (unsigned int)tcph->doff * 4;
     options_len = tcp_header_len - 20;
 
     i = 0;
@@ -47,12 +47,13 @@ double read_tcp_timestamp(struct tcphdr *tcph)
             continue;
         }
         else {
+            if (i + 1 >= options_len)
+                break;
             option_len = options[i + 1];
-            if (kind == TCPOPT_TIMESTAMP) {
-                if (i + 1 >= options_len)
-                    break;
-                tsval = ntohl(*(uint32_t *)(options + i + 2));
-                return tsval;
+            if (kind == TCPOPT_TIMESTAMP && option_len == 10) {
+                tsval = (uint32_t *)(options + i + 2);
+                *tsval = ntohl(*(uint32_t *)(options + i + 2));
+                return *tsval;
             }
             i += option_len;
         }
@@ -103,40 +104,40 @@ void print_packet(unsigned char *buffer, int size, char *iface, bool is_outgoing
 
     if (ntohs(eth->h_proto) == ETH_P_IP) {
         struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
-        if (is_outgoing)
-            printf("Packet from %s IP Header:\n", iface);
-        else
-            printf("Packet to %s IP Header:\n", iface);
-        printf("   |-IP Version        : %d\n", (unsigned int)iph->version);
-        printf("   |-IP Header Length  : %d DWORDS or %d Bytes\n", (unsigned int)iph->ihl,
-               ((unsigned int)(iph->ihl)) * 4);
-        printf("   |-Type Of Service   : %d\n", (unsigned int)iph->tos);
-        printf("   |-IP Total Length   : %d Bytes(Size of Packet)\n", ntohs(iph->tot_len));
-        printf("   |-Identification    : %d\n", ntohs(iph->id));
-        printf("   |-TTL               : %d\n", (unsigned int)iph->ttl);
-        printf("   |-Protocol          : %d\n", (unsigned int)iph->protocol);
-        printf("   |-Checksum          : %d\n", ntohs(iph->check));
-        printf("   |-Source IP         : %s\n", inet_ntoa(*(struct in_addr *)&iph->saddr));
-        printf("   |-Destination IP    : %s\n", inet_ntoa(*(struct in_addr *)&iph->daddr));
+        // if (is_outgoing)
+        //     printf("Packet from %s IP Header:\n", iface);
+        // else
+        //     printf("Packet to %s IP Header:\n", iface);
+        // printf("   |-IP Version        : %d\n", (unsigned int)iph->version);
+        // printf("   |-IP Header Length  : %d DWORDS or %d Bytes\n", (unsigned int)iph->ihl,
+        //        ((unsigned int)(iph->ihl)) * 4);
+        // printf("   |-Type Of Service   : %d\n", (unsigned int)iph->tos);
+        // printf("   |-IP Total Length   : %d Bytes(Size of Packet)\n", ntohs(iph->tot_len));
+        // printf("   |-Identification    : %d\n", ntohs(iph->id));
+        // printf("   |-TTL               : %d\n", (unsigned int)iph->ttl);
+        // printf("   |-Protocol          : %d\n", (unsigned int)iph->protocol);
+        // printf("   |-Checksum          : %d\n", ntohs(iph->check));
+        // printf("   |-Source IP         : %s\n", inet_ntoa(*(struct in_addr *)&iph->saddr));
+        // printf("   |-Destination IP    : %s\n", inet_ntoa(*(struct in_addr *)&iph->daddr));
 
         if (iph->protocol == IPPROTO_TCP) {
             struct tcphdr *tcph = (struct tcphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
-            printf("TCP Header:\n");
-            printf("   |-Source Port       : %u\n", ntohs(tcph->source));
-            printf("   |-Destination Port  : %u\n", ntohs(tcph->dest));
-            printf("   |-Sequence Number   : %u\n", ntohl(tcph->seq));
-            printf("   |-Acknowledge Number: %u\n", ntohl(tcph->ack_seq));
-            printf("   |-Header Length     : %d DWORDS or %d Bytes\n", (unsigned int)tcph->doff,
-                   (unsigned int)tcph->doff * 4);
-            printf("   |-Urgent Flag       : %d\n", (unsigned int)tcph->urg);
-            printf("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
-            printf("   |-Push Flag         : %d\n", (unsigned int)tcph->psh);
-            printf("   |-Reset Flag        : %d\n", (unsigned int)tcph->rst);
-            printf("   |-Synchronise Flag  : %d\n", (unsigned int)tcph->syn);
-            printf("   |-Finish Flag       : %d\n", (unsigned int)tcph->fin);
-            printf("   |-Window            : %d\n", ntohs(tcph->window));
-            printf("   |-Checksum          : %d\n", ntohs(tcph->check));
-            printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
+            // printf("TCP Header:\n");
+            // printf("   |-Source Port       : %u\n", ntohs(tcph->source));
+            // printf("   |-Destination Port  : %u\n", ntohs(tcph->dest));
+            // printf("   |-Sequence Number   : %u\n", ntohl(tcph->seq));
+            // printf("   |-Acknowledge Number: %u\n", ntohl(tcph->ack_seq));
+            // printf("   |-Header Length     : %d DWORDS or %d Bytes\n", (unsigned int)tcph->doff,
+            //        (unsigned int)tcph->doff * 4);
+            // printf("   |-Urgent Flag       : %d\n", (unsigned int)tcph->urg);
+            // printf("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
+            // printf("   |-Push Flag         : %d\n", (unsigned int)tcph->psh);
+            // printf("   |-Reset Flag        : %d\n", (unsigned int)tcph->rst);
+            // printf("   |-Synchronise Flag  : %d\n", (unsigned int)tcph->syn);
+            // printf("   |-Finish Flag       : %d\n", (unsigned int)tcph->fin);
+            // printf("   |-Window            : %d\n", ntohs(tcph->window));
+            // printf("   |-Checksum          : %d\n", ntohs(tcph->check));
+            // printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
             printf("   |-TIME STAMP        : %f\n", read_tcp_timestamp(tcph));
         }
         else if (iph->protocol == IPPROTO_UDP) {
