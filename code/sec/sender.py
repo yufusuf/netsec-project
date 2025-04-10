@@ -26,7 +26,7 @@ def udp_sender():
             print(f"Response from server: {response.decode()}")
 
             # Sleep for 1 second
-            time.sleep(1)
+            # time.sleep(0.01)
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -58,7 +58,7 @@ def tcp_sender():
             print(f"Response from server: {response.decode()}")
 
             # Sleep for 1 second
-            time.sleep(2)
+            # time.sleep(0.1)
 
     except Exception as e:
         print(f"An error occurred: {e}")

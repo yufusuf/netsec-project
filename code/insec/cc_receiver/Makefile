@@ -1,6 +1,6 @@
 
 PROCESSOR = processor
-SRC = main.c aux.c covert_channel.c
+SRC = main.c 
 OBJ = $(SRC:.c=.o)
 
 CC = cc

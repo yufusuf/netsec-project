@@ -1,5 +1,5 @@
 import socket
-import os
+import threading
 
 
 def start_udp_listener():
@@ -22,8 +22,23 @@ def start_udp_listener():
             print(f"Sent {sent} bytes back to {address}")
 
 
+def handle_client(connection, client_address):
+    print(f"New thread: Handling connection from {client_address}")
+    try:
+        while True:
+            data = connection.recv(4096)
+            if data:
+                print(f"Received {len(data)} bytes from {client_address}")
+                print(data.decode())
+                connection.sendall(f"Hi SecureNet! {connection}".encode())
+            else:
+                break
+    finally:
+        print(f"Closing connection with {client_address}")
+        connection.close()
+
+
 def start_tcp_listener():
-    # Create a TCP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the socket to the port
@@ -33,23 +48,13 @@ def start_tcp_listener():
 
     # Listen for incoming connections
     sock.listen()
-
     print("TCP listener started on port 8888")
 
     while True:
         connection, client_address = sock.accept()
-        try:
-            print(f"Connection from {client_address}")
-            while True:
-                data = connection.recv(4096)
-                if data:
-                    print(f"Received {len(data)} bytes from {client_address}")
-                    print(data.decode())
-                    connection.sendall("Hi SecureNet!".encode())
-                else:
-                    break
-        finally:
-            connection.close()
+        thread = threading.Thread(target=handle_client, args=(connection, client_address))
+        thread.daemon = True  # Optional: exits thread when main thread exits
+        thread.start()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
 import asyncio
 from nats.aio.client import Client as NATS
-import os, random
+import os
+import random
 from scapy.all import Ether
+
 
 async def run():
     nc = NATS()
@@ -11,18 +13,19 @@ async def run():
 
     async def message_handler(msg):
         subject = msg.subject
-        data = msg.data #.decode()
-        #print(f"Received a message on '{subject}': {data}")
+        data = msg.data  # .decode()
+        # print(f"Received a message on '{subject}': {data}")
         packet = Ether(data)
-        print(packet.show())
+        # print(packet.show())
         # Publish the received message to outpktsec and outpktinsec
-        #delay = random.expovariate(1 / 5e-6)
-        #await asyncio.sleep(delay)
+        delay = random.expovariate(2)
+        print(f"Delay: {delay}")
+        await asyncio.sleep(delay)
         if subject == "inpktsec":
             await nc.publish("outpktinsec", msg.data)
         else:
             await nc.publish("outpktsec", msg.data)
-   
+
     # Subscribe to inpktsec and inpktinsec topics
     await nc.subscribe("inpktsec", cb=message_handler)
     await nc.subscribe("inpktinsec", cb=message_handler)
