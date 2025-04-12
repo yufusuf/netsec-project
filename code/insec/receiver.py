@@ -30,7 +30,7 @@ def handle_client(connection, client_address):
             if data:
                 print(f"Received {len(data)} bytes from {client_address}")
                 print(data.decode())
-                connection.sendall(f"Hi SecureNet! {connection}".encode())
+                connection.sendall("Hi SecureNet!".encode())
             else:
                 break
     finally:

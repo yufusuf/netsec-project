@@ -50,7 +50,7 @@ def tcp_sender():
 
         while True:
             # Send message to the server
-            sock.sendall(message.encode())
+            sock.sendall((message + str(sock)).encode())
             print(f"Message sent to {host}:{port}")
 
             # Receive response from the server
@@ -58,7 +58,7 @@ def tcp_sender():
             print(f"Response from server: {response.decode()}")
 
             # Sleep for 1 second
-            # time.sleep(0.1)
+            # time.sleep(3)
 
     except Exception as e:
         print(f"An error occurred: {e}")

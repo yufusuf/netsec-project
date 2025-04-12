@@ -1,28 +1,35 @@
-
-PROCESSOR = processor
-SRC = main.c 
+receiver = receiver
+SRC = main.c aux.o covert_channel.o
 OBJ = $(SRC:.c=.o)
 
 CC = cc
-RM = rm
+RM = rm -f
 
 CFLAGS = -g -I/usr/include
-LIBS = -lpcap -lnats -lm -lcrypto
+LIBS = -lpcap -lm -lcrypto -lnats
 LDFLAGS = 
 
+.PHONY: all clean debug
 
-.PHONY: clean
+all: ../../cc_headers/aux.o ../../cc_headers/covert_channel.o $(receiver)
 
-all: $(PROCESSOR)
+# Build main receiver
+$(receiver): main.o ../../cc_headers/aux.o ../../cc_headers/covert_channel.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-debug: CFLAGS += -ggdb -O0
-debug: $(PROCESSOR)
+# Compile main.o
+main.o: main.c
+	$(CC) -c $< -o $@ $(CFLAGS)
 
-$(PROCESSOR): $(OBJ)
-	$(CC) -o $@ $(OBJ) $(CFLAGS) $(LIBS)
+# Call external make and copy .o files locally
+../../cc_headers/aux.o ../../cc_headers/covert_channel.o:
+	$(MAKE) -C ../../cc_headers
+	@cp ../../cc_headers/aux.o ../../cc_headers/covert_channel.o .
 
-.c.o: 
-	$(CC) -c $< $(CFLAGS)
+debug: CFLAGS += -ggdb
+debug: all
 
 clean:
-	$(RM) ./$(OBJ) ./$(PROCESSOR)
+	$(MAKE) -C ../../cc_headers clean
+	$(RM) *.o $(receiver)
+

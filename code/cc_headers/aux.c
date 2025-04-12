@@ -1,4 +1,5 @@
 #include "aux.h"
+#include "covert_channel.h"
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <math.h>
@@ -31,27 +32,28 @@ void print_packet(unsigned char *buffer, int size, char *iface, int is_outgoing)
         // printf("   |-TTL               : %d\n", (unsigned int)iph->ttl);
         // printf("   |-Protocol          : %d\n", (unsigned int)iph->protocol);
         // printf("   |-Checksum          : %d\n", ntohs(iph->check));
-        // printf("   |-Source IP         : %s\n", inet_ntoa(*(struct in_addr *)&iph->saddr));
-        // printf("   |-Destination IP    : %s\n", inet_ntoa(*(struct in_addr *)&iph->daddr));
+        printf("   |-Source IP         : %s\n", inet_ntoa(*(struct in_addr *)&iph->saddr));
+        printf("   |-Destination IP    : %s\n", inet_ntoa(*(struct in_addr *)&iph->daddr));
 
         if (iph->protocol == IPPROTO_TCP) {
             struct tcphdr *tcph = (struct tcphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
-            // printf("TCP Header:\n");
-            // printf("   |-Source Port       : %u\n", ntohs(tcph->source));
-            // printf("   |-Destination Port  : %u\n", ntohs(tcph->dest));
-            // printf("   |-Sequence Number   : %u\n", ntohl(tcph->seq));
-            // printf("   |-Acknowledge Number: %u\n", ntohl(tcph->ack_seq));
-            // printf("   |-Header Length     : %d DWORDS or %d Bytes\n", (unsigned int)tcph->doff,
-            //        (unsigned int)tcph->doff * 4);
-            // printf("   |-Urgent Flag       : %d\n", (unsigned int)tcph->urg);
-            // printf("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
-            // printf("   |-Push Flag         : %d\n", (unsigned int)tcph->psh);
-            // printf("   |-Reset Flag        : %d\n", (unsigned int)tcph->rst);
-            // printf("   |-Synchronise Flag  : %d\n", (unsigned int)tcph->syn);
-            // printf("   |-Finish Flag       : %d\n", (unsigned int)tcph->fin);
-            // printf("   |-Window            : %d\n", ntohs(tcph->window));
-            // printf("   |-Checksum          : %d\n", ntohs(tcph->check));
-            // printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
+            printf("TCP Header:\n");
+            printf("   |-Source Port       : %u\n", ntohs(tcph->source));
+            printf("   |-Destination Port  : %u\n", ntohs(tcph->dest));
+            printf("   |-Sequence Number   : %u\n", ntohl(tcph->seq));
+            printf("   |-Acknowledge Number: %u\n", ntohl(tcph->ack_seq));
+            printf("   |-Header Length     : %d DWORDS or %d Bytes\n", (unsigned int)tcph->doff,
+                   (unsigned int)tcph->doff * 4);
+            printf("   |-Urgent Flag       : %d\n", (unsigned int)tcph->urg);
+            printf("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
+            printf("   |-Push Flag         : %d\n", (unsigned int)tcph->psh);
+            printf("   |-Reset Flag        : %d\n", (unsigned int)tcph->rst);
+            printf("   |-Synchronise Flag  : %d\n", (unsigned int)tcph->syn);
+            printf("   |-Finish Flag       : %d\n", (unsigned int)tcph->fin);
+            printf("   |-Window            : %d\n", ntohs(tcph->window));
+            printf("   |-Checksum          : %d\n", ntohs(tcph->check));
+            printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
+            printf("   |-Time stamp          : %u\n", ntohl(*get_tcp_timestamp(tcph)));
         }
         else if (iph->protocol == IPPROTO_UDP) {
             struct udphdr *udph = (struct udphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));

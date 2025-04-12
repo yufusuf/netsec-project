@@ -1,5 +1,5 @@
-#include "aux.h"
-#include "covert_channel.h"
+#include "../cc_headers/aux.h"
+#include "../cc_headers/covert_channel.h"
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <nats/nats.h>
@@ -26,18 +26,19 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
     // usleep((double)(sleep_time * 1e6));
 
     struct iphdr *iph = (struct iphdr *)(data + sizeof(struct ethhdr));
-    if (iph->protocol == IPPROTO_TCP) {
-        struct tcphdr *tcph = (struct tcphdr *)(data + iph->ihl * 4 + sizeof(struct ethhdr));
-        if (!cc->done && !tcph->syn)
-            encodePacket(cc, data);
-        unsigned short checksum = compute_tcp_checksum(data);
-        tcph->check = checksum;
-    }
+    struct tcphdr *tcph = (struct tcphdr *)(data + iph->ihl * 4 + sizeof(struct ethhdr));
+    unsigned short checksum = compute_tcp_checksum(data);
+    tcph->check = checksum;
 
     // print ts value
     if (strcmp(natsMsg_GetSubject(msg), "inpktsec") == 0) {
         strncpy(outiface, "eth1", 5);
+        if (iph->protocol == IPPROTO_TCP) {
+            if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst)
+                encode_packet(cc, data);
+        }
 
+        // print_packet(data, len, outiface, true);
         s = natsConnection_Publish(conn, "outpktinsec", data, len);
         if (s != NATS_OK) {
             fprintf(stderr, "Error publishing packet to NATS: %s\n", natsStatus_GetText(s));
@@ -50,7 +51,6 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
             fprintf(stderr, "Error publishing packet to NATS: %s\n", natsStatus_GetText(s));
         }
     }
-    // print_packet(data, len, outiface, true);
 }
 
 int main(int argc, char *argv[]) {
@@ -61,7 +61,10 @@ int main(int argc, char *argv[]) {
     natsSubscription *sub_inpktinsec = NULL;
     char *nats_url = getenv("NATS_SURVEYOR_SERVERS");
     const char *secret_key = getenv("SECRET_KEY");
+
     cc = init_covert_channel(secret_key, 32);
+    init_message_from_file(cc, "test.txt");
+    // memset(cc->message, 0, BLOCKSIZE / 8);
 
     s = natsOptions_Create(&opts);
     if (s == NATS_OK) {

@@ -15,7 +15,7 @@ sysctl -p
 #ip link set dev eth0 up
 
 
-ethtool --offload eth0 tx off
+#ethtool --offload eth0 tx off
 nft add table input_table 
 nft 'add chain input_table input {type filter hook input priority -300;}'
 nft 'add rule input_table input ip protocol udp udp checksum set 0'
