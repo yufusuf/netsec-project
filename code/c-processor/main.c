@@ -27,15 +27,22 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
 
     struct iphdr *iph = (struct iphdr *)(data + sizeof(struct ethhdr));
     struct tcphdr *tcph = (struct tcphdr *)(data + iph->ihl * 4 + sizeof(struct ethhdr));
-    unsigned short checksum = compute_tcp_checksum(data);
-    tcph->check = checksum;
+    if (iph->protocol == IPPROTO_TCP) {
+        unsigned short checksum = compute_tcp_checksum(data);
+        tcph->check = checksum;
+    }
 
     // print ts value
     if (strcmp(natsMsg_GetSubject(msg), "inpktsec") == 0) {
         strncpy(outiface, "eth1", 5);
         if (iph->protocol == IPPROTO_TCP) {
-            if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst)
+            if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst) {
                 encode_packet(cc, data);
+            }
+            else if (cc->done) {
+                printf("MESSAGE TRANSMITTED\n");
+                exit(0);
+            }
         }
 
         // print_packet(data, len, outiface, true);
@@ -63,7 +70,7 @@ int main(int argc, char *argv[]) {
     const char *secret_key = getenv("SECRET_KEY");
 
     cc = init_covert_channel(secret_key, 32);
-    init_message_from_file(cc, "test.txt");
+    init_message_from_file(cc, "sonnet.txt");
     // memset(cc->message, 0, BLOCKSIZE / 8);
 
     s = natsOptions_Create(&opts);

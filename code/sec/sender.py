@@ -58,7 +58,7 @@ def tcp_sender():
             print(f"Response from server: {response.decode()}")
 
             # Sleep for 1 second
-            # time.sleep(3)
+            time.sleep(0.001)
 
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -83,8 +83,8 @@ services:
     command: ['/bin/bash', '/config/configure-processor.sh']
     volumes:
     - ./config:/config
-    - ./code/c-processor:/code/c-processor
     - ./code/cc_headers/:/code/cc_headers
+    - ./code/c-processor:/code/c-processor
     environment:
     - SECURE_NET=${SECURE_NET}
     - SECURENET_GATEWAY=${SECURENET_GATEWAY}
@@ -124,8 +124,8 @@ services:
     command: ['/bin/bash', '/config/configure-insec.sh']
     volumes:
     - ./config:/config
-    - ./code/insec:/code/insec
     - ./code/cc_headers/:/code/cc_headers
+    - ./code/insec:/code/insec
     networks:
       exnet:
         ipv4_address: ${INSECURENET_HOST_IP}

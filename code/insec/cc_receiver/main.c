@@ -3,6 +3,7 @@
 #include <netinet/ether.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <pcap.h>
 #include <stdint.h>
@@ -12,7 +13,7 @@
 
 #include "../../cc_headers/aux.h"
 #include "../../cc_headers/covert_channel.h"
-
+#define EXPECTED_BLOCKS 200
 struct covert_channel *cc;
 void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
@@ -48,21 +49,30 @@ void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     cipher_text_bit = ntohl(*tsval) & 1;
     plain_text_bit = key_bit ^ cipher_text_bit;
     // plain_text_bit = cipher_text_bit;
-    cc->message[bit_index / 8] |= (plain_text_bit << (7 - (bit_index % 8)));
-    printf("Digest: ");
-    for (int i = 0; i < digest_len; i++) {
-        printf("%02x", digest[i]);
+    cc->message[cc->block_index][bit_index / 8] |= (plain_text_bit << (7 - (bit_index % 8)));
+
+    // verify crc32 checksum
+    uint32_t checksum_crc = crc32(cc->message[cc->block_index], CHECKSUM_OFFSET);
+    if (strncmp(cc->message[cc->block_index] + (CHECKSUM_OFFSET), &checksum_crc, CHECKSUM_SIZE / 8) == 0) {
+        printf("BLOCK VALIDATED\n");
+        printf("received message:%s\n", cc->message[cc->block_index]);
+        cc->block_index++;
+        printf("Block index: %d\n", cc->block_index);
+        if (cc->block_index >= cc->block_len) {
+            cc->done = 1;
+        }
+        return;
     }
-    // print received bits
-    printf("\n");
-    printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d, TSVAL: %u\n", bit_index, key_bit,
-           plain_text_bit, cipher_text_bit, ntohl(*tsval));
-    printf("message:%s\n", cc->message);
-    // print message bytes
-    // for (int i = 0; i < BLOCKSIZE / 8; i++) {
-    //     printf("%02x ", cc->message[i]);
+
+    // printf("Digest: ");
+    // for (int i = 0; i < digest_len; i++) {
+    //     printf("%02x", digest[i]);
     // }
+    // // print received bits
     // printf("\n");
+    // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d, TSVAL: %u\n", bit_index, key_bit,
+    //        plain_text_bit, cipher_text_bit, ntohl(*tsval));
+    printf("current message:%s\n", cc->message[cc->block_index]);
 }
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     struct iphdr *ip = (struct iphdr *)(bytes + sizeof(struct ethhdr)); // Skip Ethernet header
@@ -74,7 +84,12 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *byt
     packet_size = ntohs(ip->tot_len) + sizeof(struct ethhdr);
     buffer = malloc(packet_size * sizeof(unsigned char));
     memcpy(buffer, bytes, packet_size);
-    receive_packet(cc, buffer);
+    if (!cc->done)
+        receive_packet(cc, buffer);
+    else {
+        printf("RECEIVED MESSAGE\n");
+        print_message_blocks(cc);
+    }
     // print_packet(buffer, packet_size, "eth0", 0);
 }
 
@@ -86,6 +101,12 @@ int main(int argc, char *argv[]) {
 
     const char *secret_key = getenv("SECRET_KEY");
     cc = init_covert_channel(secret_key, 32);
+    cc->message = malloc(EXPECTED_BLOCKS * sizeof(unsigned char *));
+    for (int i = 0; i < EXPECTED_BLOCKS; i++) {
+        cc->message[i] = malloc(BLOCKSIZE / 8);
+        memset(cc->message[i], 0, BLOCKSIZE / 8);
+    }
+    cc->block_len = 27;
 
     handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
     if (!handle) {
