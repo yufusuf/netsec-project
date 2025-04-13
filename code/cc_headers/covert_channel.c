@@ -71,11 +71,15 @@ unsigned char get_bit_index(unsigned char *digest, unsigned int digest_len) {
 }
 
 int is_block_transmitted(struct covert_channel *cc) {
-    // print values
-    // for (int i = 0; i < BLOCKSIZE; i++) {
-    //     printf("%d", cc->transmit_count[i]);
-    // }
-    // printf("\n");
+    // count 0s in transmit_count
+    int count = 0;
+    for (int i = 0; i < BLOCKSIZE; i++) {
+        if (cc->transmit_count[i] == 0) {
+            count++;
+        }
+    }
+    printf("\r\033[KCount: %d", count);
+    fflush(stdout);
     for (int i = 0; i < BLOCKSIZE; i++) {
         if (cc->transmit_count[i] < OCCUPATION) {
             return 0;
@@ -113,37 +117,49 @@ void encode_packet(struct covert_channel *cc, unsigned char *buffer) {
     tsval = get_tcp_timestamp(tcph);
 
     // print digest
-    printf("DIGEST: ");
-    for (int i = 0; i < digest_len; i++) {
-        printf("%02x", digest[i]);
-    }
-    printf("\n");
-    printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d ", bit_index, key_bit, plain_text_bit,
-           cipher_text_bit);
+    // printf("DIGEST: ");
+    // for (int i = 0; i < digest_len; i++) {
+    //     printf("%02x", digest[i]);
+    // }
+    // printf("\n");
+    // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d ", bit_index, key_bit,
+    // plain_text_bit,
+    //        cipher_text_bit);
 
     // compare last bit of tsval with cipher_text_bit
     if (tsval != NULL) {
         tsval_val = ntohl(*tsval);
-        printf("TSVAL before :%u\n", tsval_val);
+        // printf("TSVAL before :%u\n", tsval_val);
         if (lsb(tsval_val) != cipher_text_bit) {
             tsval_val++;
             *tsval = htonl(tsval_val);
-            printf("TSVAL after :%u\n", ntohl(*get_tcp_timestamp(tcph)));
+            // printf("TSVAL after :%u\n", ntohl(*get_tcp_timestamp(tcph)));
             if (lsb(tsval_val) == 0) {
-                printf("retrying...\n");
+                // printf("retrying...\n");
                 encode_packet(cc, buffer);
                 return;
             }
-            cc->transmit_count[bit_index]++;
-            if (is_block_transmitted(cc)) {
-                printf("BLOCK TRANSMITTED\n");
-                cc->done = 1;
-            }
+        }
+        cc->transmit_count[bit_index]++;
+        if (is_block_transmitted(cc)) {
+            printf("BLOCK TRANSMITTED\n");
+            cc->done = 1;
         }
     }
     else {
         printf("No timestamp option found\n");
     }
+}
+uint32_t crc32(const unsigned char *data, size_t length) {
+    uint32_t crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < length; i++) {
+        crc ^= data[i];
+        for (int j = 0; j < 8; j++) {
+            int mask = -(crc & 1);
+            crc = (crc >> 1) ^ (0xEDB88320 & mask);
+        }
+    }
+    return ~crc;
 }
 int init_message_from_file(struct covert_channel *cc, char *filename) {
     FILE *fp = fopen(filename, "r");
@@ -156,18 +172,28 @@ int init_message_from_file(struct covert_channel *cc, char *filename) {
     fseek(fp, 0, SEEK_END);
     file_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    fread(cc->message, 1, BLOCKSIZE / 8, fp);
-    printf("Message : %s\n", cc->message);
+    fread(cc->message, 1, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8, fp);
     cc->message_len = BLOCKSIZE / 8;
     return file_size;
 }
+void append_crc(struct covert_channel *cc) {
+    uint32_t crc = crc32(cc->message, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8);
+    memcpy(cc->message + (BLOCKSIZE - CHECKSUM_SIZE) / 8, &crc, CHECKSUM_SIZE / 8);
+    printf("message: ");
+    for (int i = 0; i < BLOCKSIZE / 8 - CHECKSUM_SIZE / 8; i++) {
+        printf("%c", cc->message[i]);
+    }
+    printf("\n");
+    printf("crc: 0x%08X\n", *((uint32_t *)(cc->message + (BLOCKSIZE - CHECKSUM_SIZE) / 8)));
+}
 struct covert_channel *init_covert_channel(const char *shared_key, int key_len) {
     struct covert_channel *cc = malloc(sizeof(struct covert_channel));
+    uint32_t crc;
     hex_to_bytes(shared_key, cc->shared_key, key_len);
     memset(cc->transmit_count, 0, sizeof(cc->transmit_count));
     memset(cc->message, 0, sizeof(cc->message));
+
     cc->key_len = key_len;
     cc->done = 0;
-    printf("OROSPU EVLADI HADI\n");
     return cc;
 }

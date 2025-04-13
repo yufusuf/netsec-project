@@ -1,6 +1,8 @@
 import os
 import socket
 import time
+import random
+import sys
 
 
 def udp_sender():
@@ -38,6 +40,7 @@ def tcp_sender():
     host = os.getenv('INSECURENET_HOST_IP')
     port = 8888
     message = "Hello, InSecureNet!"
+    # delay_lambda = float(sys.argv[1])
 
     if not host:
         print("SECURENET_HOST_IP environment variable is not set.")
@@ -53,12 +56,12 @@ def tcp_sender():
             sock.sendall((message + str(sock)).encode())
             print(f"Message sent to {host}:{port}")
 
+            # Sleep for 1 second
+            # delay = random.expovariate(1 / delay_lambda)
+            # time.sleep(delay)
             # Receive response from the server
             response = sock.recv(4096)
             print(f"Response from server: {response.decode()}")
-
-            # Sleep for 1 second
-            # time.sleep(3)
 
     except Exception as e:
         print(f"An error occurred: {e}")

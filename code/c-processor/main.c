@@ -15,6 +15,7 @@
 
 #define INCOMING_PACKET_BUFSIZE 65535
 struct covert_channel *cc;
+int sent_packets = 0;
 void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *msg, void *closure) {
     natsStatus s;
     size_t len = natsMsg_GetDataLength(msg);
@@ -34,8 +35,14 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
     if (strcmp(natsMsg_GetSubject(msg), "inpktsec") == 0) {
         strncpy(outiface, "eth1", 5);
         if (iph->protocol == IPPROTO_TCP) {
-            if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst)
+            if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst) {
                 encode_packet(cc, data);
+                sent_packets++;
+            }
+            else if (cc->done) {
+                printf("message sent in %d packets\n", sent_packets);
+                exit(0);
+            }
         }
 
         // print_packet(data, len, outiface, true);
@@ -64,6 +71,7 @@ int main(int argc, char *argv[]) {
 
     cc = init_covert_channel(secret_key, 32);
     init_message_from_file(cc, "test.txt");
+    append_crc(cc);
     // memset(cc->message, 0, BLOCKSIZE / 8);
 
     s = natsOptions_Create(&opts);

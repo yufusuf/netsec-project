@@ -23,4 +23,6 @@ unsigned char get_bit_index(unsigned char *digest, unsigned int digest_len);
 unsigned char get_key_bit(unsigned char *digest, unsigned int digest_len);
 struct covert_channel *init_covert_channel(const char *shared_key, int key_len);
 unsigned char lsb(uint32_t x);
+uint32_t crc32(const unsigned char *data, size_t length);
+void append_crc(struct covert_channel *cc);
 #endif // !COVERT_CHANNEL_H
