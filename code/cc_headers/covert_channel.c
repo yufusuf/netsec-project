@@ -79,7 +79,8 @@ int is_block_transmitted(struct covert_channel *cc) {
             count++;
         }
     }
-    printf("Count: %d\n", count);
+    printf("\r\033[KUnsent bits count: %d", count);
+    fflush(stdout);
     for (int i = 0; i < BLOCKSIZE; i++) {
         if (cc->transmit_count[cc->block_index][i] < OCCUPATION) {
             return 0;
@@ -138,13 +139,13 @@ void encode_packet(struct covert_channel *cc, unsigned char *buffer) {
                 encode_packet(cc, buffer);
                 return;
             }
-            cc->transmit_count[cc->block_index][bit_index]++;
-            if (is_block_transmitted(cc)) {
-                printf("BLOCK TRANSMITTED\n");
-                cc->block_index++;
-                if (cc->block_index >= cc->block_len) {
-                    cc->done = 1;
-                }
+        }
+        cc->transmit_count[cc->block_index][bit_index]++;
+        if (is_block_transmitted(cc)) {
+            printf("BLOCK TRANSMITTED\n");
+            cc->block_index++;
+            if (cc->block_index >= cc->block_len) {
+                cc->done = 1;
             }
         }
     }

@@ -15,6 +15,7 @@
 #include "../../cc_headers/covert_channel.h"
 #define EXPECTED_BLOCKS 200
 struct covert_channel *cc;
+int packet_count = 0;
 void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
     struct tcphdr *tcph = (struct tcphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
@@ -32,6 +33,7 @@ void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     unsigned char cipher_text_bit;
     uint32_t *tsval;
 
+    packet_count++;
     HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, sizeof(struct tcphdr), digest,
          &digest_len);
 
@@ -50,12 +52,14 @@ void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     plain_text_bit = key_bit ^ cipher_text_bit;
     // plain_text_bit = cipher_text_bit;
     cc->message[cc->block_index][bit_index / 8] |= (plain_text_bit << (7 - (bit_index % 8)));
-
+    printf("\r\033[Kmessage:%.28s", cc->message[cc->block_index]);
+    fflush(stdout);
     // verify crc32 checksum
     uint32_t checksum_crc = crc32(cc->message[cc->block_index], CHECKSUM_OFFSET);
-    if (strncmp(cc->message[cc->block_index] + (CHECKSUM_OFFSET), &checksum_crc, CHECKSUM_SIZE / 8) == 0) {
+    if (memcmp(cc->message[cc->block_index] + (CHECKSUM_OFFSET), &checksum_crc, CHECKSUM_SIZE / 8) == 0) {
         printf("BLOCK VALIDATED\n");
-        printf("received message:%s\n", cc->message[cc->block_index]);
+        printf("BLOCK RECEIVED in %d packets\n", packet_count);
+        printf("received message:%.28s\n", cc->message[cc->block_index]);
         cc->block_index++;
         printf("Block index: %d\n", cc->block_index);
         if (cc->block_index >= cc->block_len) {
@@ -72,7 +76,6 @@ void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     // printf("\n");
     // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d, TSVAL: %u\n", bit_index, key_bit,
     //        plain_text_bit, cipher_text_bit, ntohl(*tsval));
-    printf("current message:%s\n", cc->message[cc->block_index]);
 }
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     struct iphdr *ip = (struct iphdr *)(bytes + sizeof(struct ethhdr)); // Skip Ethernet header
@@ -87,8 +90,9 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *byt
     if (!cc->done)
         receive_packet(cc, buffer);
     else {
-        printf("RECEIVED MESSAGE\n");
-        print_message_blocks(cc);
+        // printf("RECEIVED MESSAGEn");
+        // print_message_blocks(cc);
+        exit(0);
     }
     // print_packet(buffer, packet_size, "eth0", 0);
 }
