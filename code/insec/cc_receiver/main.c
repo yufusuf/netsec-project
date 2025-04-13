@@ -60,10 +60,10 @@ void receive_packet(struct covert_channel *cc, unsigned char *buffer) {
     // printf("\n");
     // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d, TSVAL: %u\n", bit_index, key_bit,
     //        plain_text_bit, cipher_text_bit, ntohl(*tsval));
-    printf("\033[2J\033[Hmessage:%.28s", cc->message);
+    crc = crc32(cc->message, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8);
+    printf("\r\033[Kmessage:%.28s crc: 0x%08X\n", cc->message, crc);
     fflush(stdout);
     // validate crc
-    crc = crc32(cc->message, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8);
     if (crc != 0 &&
         (memcmp((uint32_t *)(cc->message + BLOCKSIZE / 8 - CHECKSUM_SIZE / 8), &crc, CHECKSUM_SIZE / 8) == 0)) {
         printf("\r");
@@ -101,7 +101,8 @@ int main(int argc, char *argv[]) {
     pcap_t *handle;
 
     const char *secret_key = getenv("SECRET_KEY");
-    cc = init_covert_channel(secret_key, 32);
+    cc = init_covert_channel(secret_key, 32, 3);
+    ;
 
     handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
     if (!handle) {

@@ -1,0 +1,96 @@
+%60 drop vs occupation
+	occupation = 1
+	receiver:
+		BLOCK Was not received
+		message:bAba:ingacnv%btAhannelkeyfi
+		crc: 0xD7D36F88
+
+		real    3m16.158s
+		user    0m0.010s
+		sys     0m0.007s
+	sender:
+		message sent in 1816 packets
+
+		real    2m54.721s
+		user    2m54.759s
+		sys     0m0.047s
+		ber:10.185185185185185
+
+	occupation = 2
+	receiver:
+		BLOCK Was not received
+		message:babazijgac/vertchannelk%yfI
+		 crc: 0x30D17DF6
+		^C
+		real    4m36.419s
+		user    0m0.004s
+		sys     0m0.013s
+	sender:
+		message sent in 1889 packets
+
+		real    4m23.346s
+		user    4m23.411s
+		sys     0m0.048s
+		ber: 1.8518518518518516
+
+	occupation = 3
+	receiver:
+		message:babazhn'acovertchannelkeyfi
+		 crc: 0x74184558
+		^C
+		real    3m10.267s
+		user    0m0.007s
+		sys     0m0.011s
+	sender:
+		message sent in 2428 packets
+		ber:0.9259259259259258
+
+	occupation = 4
+	receiver:
+		message:babazingacovertchannelkeyfi
+		 crc: 0x1B8AE27D
+		BLOCK RECEIVED in 1187 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    2m42.817s
+		user    0m0.006s
+		sys     0m0.012s
+	sender:
+		message sent in 3204 packets
+		ber: 0.000
+
+	occupation = 5
+	receiver:
+		BLOCK RECEIVED in 1477 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    2m45.890s
+		user    0m0.005s
+		sys     0m0.016s
+	sender:
+		message sent in 3233 packets
+
+		real    2m20.036s
+		user    2m20.243s
+		sys     0m0.021s
+		ber: 0.000
+
+
+
+	
+
+
+
+
+
+
+
+
+
+	
+
+			
+
+

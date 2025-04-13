@@ -74,14 +74,14 @@ int is_block_transmitted(struct covert_channel *cc) {
     // count 0s in transmit_count
     int count = 0;
     for (int i = 0; i < BLOCKSIZE; i++) {
-        if (cc->transmit_count[i] == 0) {
+        if (cc->transmit_count[i] < cc->occupation) {
             count++;
         }
     }
-    printf("\r\033[KCount: %d", count);
+    printf("\r\033[KUnsent bit count(< OCCUPATION): %d", count);
     fflush(stdout);
     for (int i = 0; i < BLOCKSIZE; i++) {
-        if (cc->transmit_count[i] < OCCUPATION) {
+        if (cc->transmit_count[i] < cc->occupation) {
             return 0;
         }
     }
@@ -186,7 +186,7 @@ void append_crc(struct covert_channel *cc) {
     printf("\n");
     printf("crc: 0x%08X\n", *((uint32_t *)(cc->message + (BLOCKSIZE - CHECKSUM_SIZE) / 8)));
 }
-struct covert_channel *init_covert_channel(const char *shared_key, int key_len) {
+struct covert_channel *init_covert_channel(const char *shared_key, int key_len, int occupation) {
     struct covert_channel *cc = malloc(sizeof(struct covert_channel));
     uint32_t crc;
     hex_to_bytes(shared_key, cc->shared_key, key_len);
@@ -195,5 +195,6 @@ struct covert_channel *init_covert_channel(const char *shared_key, int key_len) 
 
     cc->key_len = key_len;
     cc->done = 0;
+    cc->occupation = occupation;
     return cc;
 }

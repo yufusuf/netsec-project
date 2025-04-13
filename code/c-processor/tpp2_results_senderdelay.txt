@@ -1,0 +1,131 @@
+sender delay (30 tcp connections)
+	lambda = 0.00001
+	receiver:
+		BLOCK RECEIVED in 1335 packets
+		received message: babazingacovertchannelkeyfi
+		
+		
+		real    0m8.242s
+		user    0m0.011s
+		sys     0m0.007s
+	sender:
+		message sent in 2498 packets
+
+		real    0m56.136s
+		user    0m56.321s
+		sys     0m0.011s
+
+
+	lambda = 0.0001
+	receiver:
+		BLOCK RECEIVED in 1234 packets
+		received message: babazingacovertchannelkeyfi
+		
+		real    0m55.336s
+		user    0m0.012s
+		sys     0m0.009s
+	sender:
+		message sent in 2509 packets
+
+		real    1m55.865s
+		user    1m55.953s
+		sys     0m0.044s
+
+	lambda = 0.001
+	receiver:
+		BLOCK RECEIVED in 2083 packets
+		received message: babazingacovertchannelkeyfi
+
+		real    0m34.848s
+		user    0m0.017s
+		sys     0m0.010s
+	sender:
+		message sent in 2286 packets
+
+		real    0m33.773s
+		user    0m33.963s
+		sys     0m0.024s
+
+	lambda = 0.01
+	receiver:
+		BLOCK RECEIVED in 2089 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m31.748s
+		user    0m0.022s
+		sys     0m0.007s
+	sender:
+		message sent in 2717 packets
+		real    1m5.136s
+		user    1m5.389s
+		sys     0m0.016s
+
+	lambda = 0.1
+	receiver:
+		BLOCK RECEIVED in 1806 packets
+		received message: babazingacovertchannelkeyfi
+
+		real    0m11.265s
+		user    0m0.013s
+		sys     0m0.011s
+	sender:
+		message sent in 3757 packets
+
+		real    1m36.285s
+		user    1m36.605s
+		sys     0m0.067s
+
+	lambda = 1
+	receiver:
+		BLOCK RECEIVED in 1156 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    1m9.654s
+		user    0m0.016s
+		sys     0m0.005s
+	sender:
+		message sent in 2809 packets
+
+		real    3m18.959s
+		user    3m19.168s
+		sys     0m0.040s
+
+
+	lambda = 2
+	receiver:
+		BLOCK RECEIVED in 1019 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m20.491s
+		user    0m0.010s
+		sys     0m0.007s
+	sender:
+		message sent in 2667 packets
+
+		real    1m0.270s
+		user    1m0.579s
+		sys     0m0.014s
+	lambda = 4
+	receiver:
+		BLOCK RECEIVED in 1609 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m57.344s
+		user    0m0.018s
+		sys     0m0.006s
+
+	sender:
+		message sent in 2140 packets
+
+		real    1m24.391s
+		user    1m24.618s
+		sys     0m0.018s
+
+
+
+
+

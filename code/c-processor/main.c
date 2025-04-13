@@ -16,6 +16,7 @@
 #define INCOMING_PACKET_BUFSIZE 65535
 struct covert_channel *cc;
 int sent_packets = 0;
+int drop_rate = 0;
 void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *msg, void *closure) {
     natsStatus s;
     size_t len = natsMsg_GetDataLength(msg);
@@ -43,6 +44,10 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
                 printf("message sent in %d packets\n", sent_packets);
                 exit(0);
             }
+            // with %drop_rate chance drop the packet
+            if (rand() % 100 < drop_rate) {
+                return;
+            }
         }
 
         // print_packet(data, len, outiface, true);
@@ -68,8 +73,24 @@ int main(int argc, char *argv[]) {
     natsSubscription *sub_inpktinsec = NULL;
     char *nats_url = getenv("NATS_SURVEYOR_SERVERS");
     const char *secret_key = getenv("SECRET_KEY");
+    int occupation = 3;
+    srand(time(NULL));
+    // read drop rate from args
+    //
+    if (argc > 2) {
+        drop_rate = atoi(argv[1]);
+        if (drop_rate < 0 || drop_rate > 100) {
+            fprintf(stderr, "Invalid drop rate. Must be between 0 and 100.\n");
+            return 1;
+        }
+        occupation = atoi(argv[2]);
+    }
+    else {
+        fprintf(stderr, "Usage: %s <drop_rate> <occupation_number>\n", argv[0]);
+        return 1;
+    }
 
-    cc = init_covert_channel(secret_key, 32);
+    cc = init_covert_channel(secret_key, 32, occupation);
     init_message_from_file(cc, "test.txt");
     append_crc(cc);
     // memset(cc->message, 0, BLOCKSIZE / 8);

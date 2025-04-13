@@ -40,7 +40,11 @@ def tcp_sender():
     host = os.getenv('INSECURENET_HOST_IP')
     port = 8888
     message = "Hello, InSecureNet!"
-    # delay_lambda = float(sys.argv[1])
+    if len(sys.argv) < 2:
+        print("Usage: python sender.py <delay_lambda>")
+        return
+    delay_lambda = float(sys.argv[1])
+    print(f"Delay lambda: {delay_lambda}")
 
     if not host:
         print("SECURENET_HOST_IP environment variable is not set.")
@@ -57,11 +61,13 @@ def tcp_sender():
             print(f"Message sent to {host}:{port}")
 
             # Sleep for 1 second
-            # delay = random.expovariate(1 / delay_lambda)
-            # time.sleep(delay)
             # Receive response from the server
             response = sock.recv(4096)
             print(f"Response from server: {response.decode()}")
+
+            if delay_lambda != 0:
+                delay = random.expovariate(1 / delay_lambda)
+                time.sleep(delay)
 
     except Exception as e:
         print(f"An error occurred: {e}")

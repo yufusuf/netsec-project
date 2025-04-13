@@ -1,0 +1,120 @@
+drop rate (30 connections) (occupation 3)
+	rate = %0
+	receiver:
+		BLOCK RECEIVED in 1224 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m10.243s
+		user    0m0.008s
+		sys     0m0.010s
+	sender:
+		message sent in 2129 packets
+
+		real    0m44.434s
+		user    0m44.537s
+		sys     0m0.048s
+		ber: 0.000000
+	rate = %2
+	receiver:
+		BLOCK RECEIVED in 1304 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m37.944s
+		user    0m0.013s
+		sys     0m0.005s
+		ber: 0.000000
+	sender:
+		message sent in 2341 packets
+
+		real    0m52.352s
+		user    0m52.528s
+		sys     0m0.016s
+
+	rate = %10
+	receiver:
+		BLOCK RECEIVED in 1837 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m28.712s
+		user    0m0.016s
+		sys     0m0.011s
+	sender:
+		message sent in 2983 packets
+
+		real    1m20.620s
+		user    1m20.878s
+		sys     0m0.021s
+		ber: 0.000000
+	rate = %20
+	receiver:
+		BLOCK RECEIVED in 2193 packets
+		received message: babazingacovertchannelkeyfi
+
+
+		real    0m44.086s
+		user    0m0.016s
+		sys     0m0.016s
+	sender:
+		message sent in 2815 packets
+
+		real    0m46.548s
+		user    0m46.822s
+		sys     0m0.015s
+		ber: 0.000000
+	rate = $40
+	receiver:
+		BLOCK was not received
+		message:babazingacmvertcHannelkeyfi
+		crc: 0x066F5206
+	sender:
+		message sent in 2062 packets
+
+		real    0m57.635s
+		user    0m57.735s
+		sys     0m0.021s
+		ber: 	0.9259259
+	rate = %60
+	receiver:
+		BLOCK was not received
+		message:babazijgacovertchannelieybi
+		 crc: 0x0DEA78AA
+		real    0m43.666s
+		user    0m0.004s
+		sys     0m0.017s
+	sender:
+		message sent in 2442 packets
+
+		real    4m19.891s
+		user    4m20.016s
+		sys     0m0.023s
+		ber:1.3888888888888888
+	rate = %80
+	receiver:
+		message:babaxijfacov$rDchanLelK%yf`
+		crc: 0x08905120
+		
+		real    3m59.142s
+		user    0m0.005s
+		sys     0m0.008s
+		ber: 6.01851851
+
+
+
+
+
+	
+
+
+
+	
+
+
+
+
+
+
+
+
