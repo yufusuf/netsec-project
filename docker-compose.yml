@@ -12,7 +12,7 @@ services:
     - mitm
     volumes:
     - ./config:/config
-    - ./code/sec:/code/sec
+    - ./code:/code
     environment:
     - SECURE_NET=${SECURE_NET}
     - SECURENET_GATEWAY=${SECURENET_GATEWAY}
@@ -83,8 +83,7 @@ services:
     command: ['/bin/bash', '/config/configure-processor.sh']
     volumes:
     - ./config:/config
-    - ./code/c-processor:/code/c-processor
-    - ./code/cc_headers/:/code/cc_headers
+    - ./code:/code
     environment:
     - SECURE_NET=${SECURE_NET}
     - SECURENET_GATEWAY=${SECURENET_GATEWAY}
@@ -124,8 +123,7 @@ services:
     command: ['/bin/bash', '/config/configure-insec.sh']
     volumes:
     - ./config:/config
-    - ./code/insec:/code/insec
-    - ./code/cc_headers/:/code/cc_headers
+    - ./code:/code
     networks:
       exnet:
         ipv4_address: ${INSECURENET_HOST_IP}

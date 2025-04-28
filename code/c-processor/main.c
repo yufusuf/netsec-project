@@ -22,9 +22,8 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
     size_t len = natsMsg_GetDataLength(msg);
     uint8_t *data = (uint8_t *)natsMsg_GetData(msg);
     char outiface[5];
-    // before sending the packets sleep for the exponentially random amount of time
-    // double lambda = 10000000;
-    // double sleep_time = get_expo_random(lambda);
+    // before sending the packets sleep for the exponentially random amount of
+    // time double lambda = 10000000; double sleep_time = get_expo_random(lambda);
     // usleep((double)(sleep_time * 1e6));
 
     struct iphdr *iph = (struct iphdr *)(data + sizeof(struct ethhdr));

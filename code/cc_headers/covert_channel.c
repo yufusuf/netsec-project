@@ -104,12 +104,8 @@ void encode_packet(struct covert_channel *cc, unsigned char *buffer) {
     uint32_t *tsval;
     uint32_t tsval_val;
 
-    HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, sizeof(struct tcphdr), digest,
+    HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, tcp_header_len - 1, digest,
          &digest_len);
-    // for (int i = 0; i < tcp_header_len; i++) {
-    //     printf("%02x ", ((unsigned char *)tcph)[i]);
-    // }
-    // printf("\n");
     bit_index = get_bit_index(digest, digest_len);
     key_bit = get_key_bit(digest, digest_len);
     plain_text_bit = cc->message[bit_index / 8] >> (7 - (bit_index % 8)) & 0x01;
@@ -122,8 +118,8 @@ void encode_packet(struct covert_channel *cc, unsigned char *buffer) {
     //     printf("%02x", digest[i]);
     // }
     // printf("\n");
-    // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d ", bit_index, key_bit,
-    // plain_text_bit,
+    // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d
+    // ", bit_index, key_bit, plain_text_bit,
     //        cipher_text_bit);
 
     // compare last bit of tsval with cipher_text_bit
