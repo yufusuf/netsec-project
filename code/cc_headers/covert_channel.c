@@ -104,7 +104,7 @@ void encode_packet(struct covert_channel *cc, unsigned char *buffer) {
     uint32_t *tsval;
     uint32_t tsval_val;
 
-    HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, tcp_header_len - 1, digest,
+    HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, sizeof(struct tcphdr), digest,
          &digest_len);
     bit_index = get_bit_index(digest, digest_len);
     key_bit = get_key_bit(digest, digest_len);
