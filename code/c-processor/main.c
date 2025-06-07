@@ -10,6 +10,7 @@
 #include <netinet/udp.h>
 #include <netpacket/packet.h>
 #include <openssl/evp.h>
+#include <pthread.h>
 #include <string.h>
 #include <time.h>
 
@@ -17,6 +18,7 @@
 struct covert_channel *cc;
 int sent_packets = 0;
 int drop_rate = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *msg, void *closure) {
     natsStatus s;
     size_t len = natsMsg_GetDataLength(msg);
@@ -35,6 +37,8 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
     if (strcmp(natsMsg_GetSubject(msg), "inpktsec") == 0) {
         strncpy(outiface, "eth1", 5);
         if (iph->protocol == IPPROTO_TCP) {
+            pthread_mutex_lock(&mutex);
+            // printf("##########################################\n");
             if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst) {
                 encode_packet(cc, data);
                 sent_packets++;
@@ -43,6 +47,9 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
                 printf("message sent in %d packets\n", sent_packets);
                 exit(0);
             }
+            // print_packet(data, len, outiface, 0);
+            // printf("##########################################\n");
+            pthread_mutex_unlock(&mutex);
             // with %drop_rate chance drop the packet
             if (rand() % 100 < drop_rate) {
                 return;
@@ -90,7 +97,7 @@ int main(int argc, char *argv[]) {
     }
 
     cc = init_covert_channel(secret_key, 32, occupation);
-    init_message_from_file(cc, "test.txt");
+    init_message_from_file(cc, "sonnet.txt");
     append_crc(cc);
     // memset(cc->message, 0, BLOCKSIZE / 8);
 

@@ -53,7 +53,12 @@ void print_packet(unsigned char *buffer, int size, char *iface, int is_outgoing)
             printf("   |-Window            : %d\n", ntohs(tcph->window));
             printf("   |-Checksum          : %d\n", ntohs(tcph->check));
             printf("   |-Urgent Pointer    : %d\n", tcph->urg_ptr);
-            printf("   |-Time stamp          : %u\n", ntohl(*get_tcp_timestamp(tcph)));
+            unsigned int *tsval = get_tcp_timestamp(tcph);
+            if (tsval == NULL) {
+                printf("   |-No TCP Timestamp option found\n");
+            }
+            else
+                printf("   |-Time stamp          : %u\n", ntohl(*tsval));
         }
         else if (iph->protocol == IPPROTO_UDP) {
             struct udphdr *udph = (struct udphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));
@@ -118,7 +123,7 @@ void hex_to_bytes(const char *hex, unsigned char *bytes, int len) {
         sscanf(hex + 2 * i, "%2hhx", &bytes[i]);
     }
 }
-unsigned short compute_tcp_checksum(unsigned char *buffer) {
+unsigned short compute_tcp_checksum(unsigned char *const buffer) {
     // code taken from https://gist.github.com/david-hoze/0c7021434796997a4ca42d7731a7073a
     struct iphdr *iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
     struct tcphdr *tcph = (struct tcphdr *)(buffer + iph->ihl * 4 + sizeof(struct ethhdr));

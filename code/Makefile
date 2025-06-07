@@ -20,7 +20,7 @@ all: c-processor receiver
 
 # Build c-processor
 c-processor:
-	$(MAKE) -C $(C_PROCESSOR_DIR)
+	$(MAKE) -C $(C_PROCESSOR_DIR) 
 
 # Build cc_receiver
 receiver:

@@ -43,8 +43,8 @@ def tcp_sender():
     if len(sys.argv) < 2:
         print("Usage: python sender.py <delay_lambda>")
         return
-    delay_lambda = float(sys.argv[1])
-    print(f"Delay lambda: {delay_lambda}")
+    # delay_lambda = float(sys.argv[1])
+    # print(f"Delay lambda: {delay_lambda}")
 
     if not host:
         print("SECURENET_HOST_IP environment variable is not set.")
@@ -65,9 +65,10 @@ def tcp_sender():
             response = sock.recv(4096)
             print(f"Response from server: {response.decode()}")
 
-            if delay_lambda != 0:
-                delay = random.expovariate(1 / delay_lambda)
-                time.sleep(delay)
+            # if delay_lambda != 0:
+            #     delay = random.expovariate(1 / delay_lambda)
+            #     time.sleep(delay)
+            # time.sleep(3)
 
     except Exception as e:
         print(f"An error occurred: {e}")
