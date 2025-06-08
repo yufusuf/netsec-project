@@ -67,18 +67,19 @@ int is_block_transmitted(struct covert_channel *cc) {
     // count 0s in transmit_count
     int count = 0;
     for (int i = 0; i < BLOCKSIZE; i++) {
-        if (cc->transmit_count[i] < cc->occupation) {
+        if (cc->transmit_count[cc->block_index][i] < cc->occupation) {
             count++;
         }
     }
     printf("\r\033[KUnsent bit count(< OCCUPATION): %d", count);
     fflush(stdout);
-    for (int i = 0; i < BLOCKSIZE; i++) {
-        if (cc->transmit_count[i] < cc->occupation) {
-            return 0;
-        }
-    }
-    return 1;
+    return count == 0;
+    // for (int i = 0; i < BLOCKSIZE; i++) {
+    //     if (cc->transmit_count[cc->block_index][i] < cc->occupation) {
+    //         return 0;
+    //     }
+    // }
+    // return 1;
 }
 unsigned char lsb(uint32_t x) {
     return (x) & 0x01;
@@ -100,7 +101,7 @@ void encode_packet(struct covert_channel *cc, unsigned char *const buffer) {
          &digest_len);
     bit_index = get_bit_index(digest, digest_len);
     key_bit = get_key_bit(digest, digest_len);
-    plain_text_bit = cc->message[bit_index / 8] >> (7 - (bit_index % 8)) & 0x01;
+    plain_text_bit = cc->message[cc->block_index][bit_index / 8] >> (7 - (bit_index % 8)) & 0x01;
     cipher_text_bit = (key_bit ^ plain_text_bit);
     tsval = get_tcp_timestamp(tcph);
 
@@ -116,20 +117,29 @@ void encode_packet(struct covert_channel *cc, unsigned char *const buffer) {
     // compare last bit of tsval with cipher_text_bit
     if (tsval != NULL) {
         tsval_val = ntohl(*tsval);
-        // printf("TSVAL before :%u\n", tsval_val);
         if (lsb(tsval_val) != cipher_text_bit) {
             tsval_val++;
             *tsval = htonl(tsval_val);
-            // printf("TSVAL after :%u\n", ntohl(*get_tcp_timestamp(tcph)));
             checksum = compute_tcp_checksum(buffer);
             tcph->check = checksum;
             encode_packet(cc, buffer);
             return;
+            // TODOL: if timestamp highber bits included in digest calculation in the future,
+            //  check (lsb(tsval_val) == 0) if they are changed then call encode_packet again
         }
-        cc->transmit_count[bit_index]++;
+        cc->transmit_count[cc->block_index][bit_index]++;
         if (is_block_transmitted(cc)) {
             printf("BLOCK TRANSMITTED\n");
-            cc->done = 1;
+            cc->block_index++;
+            if (cc->block_index >= cc->block_len) {
+                cc->done = 1;
+                printf("All blocks transmitted\n");
+            }
+            else {
+                printf("Next block index: %d\n", cc->block_index);
+                // next message
+                printf("Next message: %.28s\n", cc->message[cc->block_index]);
+            }
         }
     }
     else {
@@ -156,10 +166,6 @@ void decode_packet(struct covert_channel *cc, unsigned char *const buffer) {
     HMAC(EVP_sha256(), cc->shared_key, sizeof(cc->shared_key), (unsigned char *)tcph, sizeof(struct tcphdr), digest,
          &digest_len);
 
-    // for (int i = 0; i < tcp_header_len; i++) {
-    //     printf("%02x ", ((unsigned char *)tcph)[i]);
-    // }
-    // printf("\n");
     bit_index = get_bit_index(digest, digest_len);
     key_bit = get_key_bit(digest, digest_len);
     tsval = get_tcp_timestamp(tcph);
@@ -167,10 +173,14 @@ void decode_packet(struct covert_channel *cc, unsigned char *const buffer) {
         printf("No timestamp option found\n");
         return;
     }
-    cipher_text_bit = ntohl(*tsval) & 1;
+    cipher_text_bit = ntohl(*tsval) & 0x01;
     plain_text_bit = key_bit ^ cipher_text_bit;
-    // plain_text_bit = cipher_text_bit;
-    cc->message[bit_index / 8] |= (plain_text_bit << (7 - (bit_index % 8)));
+    size_t byte_idx = bit_index / 8;
+    uint8_t bit_pos = 7 - (bit_index % 8);
+    uint8_t mask = (1u << bit_pos);
+    cc->message[cc->block_index][byte_idx] =
+        (cc->message[cc->block_index][byte_idx] & ~mask) | ((plain_text_bit << bit_pos) & mask);
+
     // printf("Digest: ");
     // for (int i = 0; i < digest_len; i++) {
     //     printf("%02x", digest[i]);
@@ -179,20 +189,18 @@ void decode_packet(struct covert_channel *cc, unsigned char *const buffer) {
     // printf("\n");
     // printf("Bit index: %d, Key bit: %d, Plain text bit: %d, Cipher text bit: %d, TSVAL: %u\n", bit_index, key_bit,
     //        plain_text_bit, cipher_text_bit, ntohl(*tsval));
-    crc = crc32(cc->message, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8);
-    printf("\r\033[Kmessage:%.28s crc: 0x%08X\n", cc->message, crc);
-    fflush(stdout);
+    crc = crc32(cc->message[cc->block_index], CHECKSUM_OFFSET);
+    // printf("\r\033[Kmessage:%.28s crc: 0x%08X\n", cc->message[cc->block_index], crc);
+    // fflush(stdout);
     // validate crc
     if (crc != 0 &&
-        (memcmp((uint32_t *)(cc->message + BLOCKSIZE / 8 - CHECKSUM_SIZE / 8), &crc, CHECKSUM_SIZE / 8) == 0)) {
-        printf("\r");
-        // printf("BLOCK RECEIVED in %d packets\n", packet_count);
+        (memcmp((uint32_t *)(cc->message[cc->block_index] + CHECKSUM_OFFSET), &crc, CHECKSUM_SIZE / 8) == 0)) {
         printf("received message: ");
-        for (int i = 0; i < BLOCKSIZE / 8 - CHECKSUM_SIZE / 8; i++) {
-            printf("%c", cc->message[i]);
+        for (int i = 0; i < CHECKSUM_OFFSET; i++) {
+            printf("%c", cc->message[cc->block_index][i]);
         }
         printf("\n");
-        cc->done = 1;
+        cc->block_index++;
     }
 }
 uint32_t crc32(const unsigned char *data, size_t length) {
@@ -206,39 +214,82 @@ uint32_t crc32(const unsigned char *data, size_t length) {
     }
     return ~crc;
 }
+void print_message_blocks(struct covert_channel *cc) {
+    int chunk_size = BLOCKSIZE / 8;
+
+    for (int i = 0; i < cc->block_len; i++) {
+        printf("Block %d:\n", i);
+
+        // Print the first 32 bytes of the message as a string
+        printf("Message: ");
+        for (int j = 0; j < chunk_size - CHECKSUM_SIZE / 8; j++) {
+            printf("%c", cc->message[i][j]);
+        }
+
+        printf("\n");
+
+        // Extract the checksum (first 4 bytes of CHECKSUM_SIZE)
+        uint32_t checksum;
+        memcpy(&checksum, cc->message[i] + CHECKSUM_OFFSET, sizeof(uint32_t));
+
+        printf("\n  CRC32: 0x%08X\n", checksum);
+
+        printf("\n\n");
+    }
+}
 int init_message_from_file(struct covert_channel *cc, char *filename) {
-    FILE *fp = fopen(filename, "r");
-    int file_size;
+    FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
-        fprintf(stderr, "Error  message opening file\n");
+        fprintf(stderr, "Error opening file\n");
         return 0;
     }
-    // read contents of file into buffer
+
     fseek(fp, 0, SEEK_END);
-    file_size = ftell(fp);
+    int file_size = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    fread(cc->message, 1, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8, fp);
-    cc->message_len = BLOCKSIZE / 8;
+
+    int chunk_size = BLOCKSIZE / 8;
+    int msg_size = chunk_size - CHECKSUM_SIZE / 8;
+    int total_blocks = (file_size + msg_size - 1) / chunk_size;
+
+    cc->message = malloc(total_blocks * sizeof(unsigned char *));
+    cc->transmit_count = malloc(total_blocks * sizeof(int *));
+
+    for (int i = 0; i < total_blocks; i++) {
+        cc->message[i] = malloc(chunk_size);
+        cc->transmit_count[i] = calloc(BLOCKSIZE, sizeof(int));
+
+        size_t read_bytes = fread(cc->message[i], 1, msg_size, fp);
+        if (read_bytes < msg_size) {
+            memset(cc->message[i] + read_bytes, 0, msg_size - read_bytes);
+        }
+        append_crc(cc, i);
+    }
+
+    fclose(fp);
+
+    cc->block_len = total_blocks;
+    // print_message_blocks(cc);
+
     return file_size;
 }
-void append_crc(struct covert_channel *cc) {
-    uint32_t crc = crc32(cc->message, BLOCKSIZE / 8 - CHECKSUM_SIZE / 8);
-    memcpy(cc->message + (BLOCKSIZE - CHECKSUM_SIZE) / 8, &crc, CHECKSUM_SIZE / 8);
-    printf("message: ");
-    for (int i = 0; i < BLOCKSIZE / 8 - CHECKSUM_SIZE / 8; i++) {
-        printf("%c", cc->message[i]);
-    }
-    printf("\n");
-    printf("crc: 0x%08X\n", *((uint32_t *)(cc->message + (BLOCKSIZE - CHECKSUM_SIZE) / 8)));
+void append_crc(struct covert_channel *cc, int i) {
+    uint32_t crc = crc32(cc->message[i], CHECKSUM_OFFSET);
+    memcpy(cc->message[i] + CHECKSUM_OFFSET, &crc, CHECKSUM_SIZE / 8);
+    // printf("message: ");
+    // for (int j = 0; j < CHECKSUM_OFFSET; j++) {
+    //     printf("%c", cc->message[i][j]);
+    // }
+    // printf("\n");
+    // printf("crc: 0x%08X\n", *((uint32_t *)(cc->message + CHECKSUM_OFFSET)));
 }
 struct covert_channel *init_covert_channel(const char *shared_key, int key_len, int occupation) {
     struct covert_channel *cc = malloc(sizeof(struct covert_channel));
     hex_to_bytes(shared_key, cc->shared_key, key_len);
-    memset(cc->transmit_count, 0, sizeof(cc->transmit_count));
-    memset(cc->message, 0, sizeof(cc->message));
 
     cc->key_len = key_len;
     cc->done = 0;
     cc->occupation = occupation;
+    cc->block_index = 0;
     return cc;
 }

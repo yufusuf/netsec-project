@@ -98,8 +98,6 @@ int main(int argc, char *argv[]) {
 
     cc = init_covert_channel(secret_key, 32, occupation);
     init_message_from_file(cc, "sonnet.txt");
-    append_crc(cc);
-    // memset(cc->message, 0, BLOCKSIZE / 8);
 
     s = natsOptions_Create(&opts);
     if (s == NATS_OK) {

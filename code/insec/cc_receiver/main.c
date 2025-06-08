@@ -5,7 +5,6 @@
 #include <netinet/tcp.h>
 #include <openssl/hmac.h>
 #include <pcap.h>
-#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +15,6 @@
 
 struct covert_channel *cc;
 int packet_count = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes) {
     struct iphdr *ip = (struct iphdr *)(bytes + sizeof(struct ethhdr)); // Skip Ethernet header
     unsigned char *buffer;
@@ -28,17 +26,16 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *byt
     buffer = malloc(packet_size * sizeof(unsigned char));
     memcpy(buffer, bytes, packet_size);
 
-    pthread_mutex_lock(&mutex);
     // printf("##########################################\n");
     // print_packet(buffer, packet_size, "eth0", 0);
     if (!cc->done)
         decode_packet(cc, buffer);
     else {
-        exit(0);
+        // exit(0);
     }
     // printf("##########################################\n");
-    pthread_mutex_unlock(&mutex);
     // print_packet(buffer, packet_size, "eth0", 0);
+    free(buffer);
 }
 
 int main(int argc, char *argv[]) {
@@ -49,7 +46,16 @@ int main(int argc, char *argv[]) {
 
     const char *secret_key = getenv("SECRET_KEY");
     cc = init_covert_channel(secret_key, 32, 3);
-    ;
+
+    int total_blocks = 30;
+
+    cc->message = malloc(total_blocks * sizeof(unsigned char *));
+
+    for (int i = 0; i < total_blocks; i++) {
+        cc->message[i] = calloc(BLOCKSIZE / 8, sizeof(unsigned char));
+    }
+    cc->done = 0;
+    cc->block_len = 30;
 
     handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
     if (!handle) {
