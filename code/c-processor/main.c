@@ -38,7 +38,6 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
         strncpy(outiface, "eth1", 5);
         if (iph->protocol == IPPROTO_TCP) {
             pthread_mutex_lock(&mutex);
-            // printf("##########################################\n");
             if (!cc->done && !tcph->syn && !tcph->fin && !tcph->rst) {
                 encode_packet(cc, data);
                 sent_packets++;
@@ -47,8 +46,6 @@ void handle_nats_packets(natsConnection *conn, natsSubscription *sub, natsMsg *m
                 printf("message sent in %d packets\n", sent_packets);
                 exit(0);
             }
-            // print_packet(data, len, outiface, 0);
-            // printf("##########################################\n");
             pthread_mutex_unlock(&mutex);
             // with %drop_rate chance drop the packet
             if (rand() % 100 < drop_rate) {

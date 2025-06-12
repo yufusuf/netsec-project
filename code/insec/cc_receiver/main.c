@@ -19,22 +19,17 @@ void packet_handler(u_char *user, const struct pcap_pkthdr *h, const u_char *byt
     struct iphdr *ip = (struct iphdr *)(bytes + sizeof(struct ethhdr)); // Skip Ethernet header
     unsigned char *buffer;
     unsigned int packet_size;
-    if (ip->protocol != IPPROTO_TCP)
-        return;
-    // calculate total packet size with eth header
+
+    pcap_dump(user, h, bytes);
     packet_size = ntohs(ip->tot_len) + sizeof(struct ethhdr);
     buffer = malloc(packet_size * sizeof(unsigned char));
     memcpy(buffer, bytes, packet_size);
 
-    // printf("##########################################\n");
-    // print_packet(buffer, packet_size, "eth0", 0);
     if (!cc->done)
         decode_packet(cc, buffer);
     else {
         // exit(0);
     }
-    // printf("##########################################\n");
-    // print_packet(buffer, packet_size, "eth0", 0);
     free(buffer);
 }
 
@@ -43,6 +38,8 @@ int main(int argc, char *argv[]) {
     char *dev = "eth0";
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_t *handle;
+    pcap_dumper_t *dumper;
+    const char *outfile = "capture.pcap";
 
     const char *secret_key = getenv("SECRET_KEY");
     cc = init_covert_channel(secret_key, 32, 3);
@@ -63,6 +60,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    dumper = pcap_dump_open(handle, outfile);
+    if (!dumper) {
+        fprintf(stderr, "pcap_dump_open failed: %s\n", pcap_geterr(handle));
+        pcap_close(handle);
+        return 1;
+    }
+
     struct bpf_program fp;
     char filter_exp[] = "tcp and ip dst host 10.0.0.21";
     if (pcap_compile(handle, &fp, filter_exp, 0, PCAP_NETMASK_UNKNOWN) == -1 || pcap_setfilter(handle, &fp) == -1) {
@@ -71,7 +75,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Listening on interface %s for TCP packets...\n", dev);
-    pcap_loop(handle, -1, packet_handler, NULL);
+    pcap_loop(handle, -1, packet_handler, (u_char *)dumper);
 
     pcap_close(handle);
     return 0;

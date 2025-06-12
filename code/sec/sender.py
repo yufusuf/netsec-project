@@ -68,7 +68,7 @@ def tcp_sender():
             # if delay_lambda != 0:
             #     delay = random.expovariate(1 / delay_lambda)
             #     time.sleep(delay)
-            # time.sleep(0.2)
+            time.sleep(random.expovariate(1 / 0.002))  # Example delay of 0.01 seconds
 
     except Exception as e:
         print(f"An error occurred: {e}")
