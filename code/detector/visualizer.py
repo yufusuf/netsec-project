@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def read_pcap(filename, max_packets=100):
+def read_pcap(filename, max_packets=140):
     # 1) Read all packets from a file
     packets = rdpcap(filename)
 
@@ -20,16 +20,39 @@ def read_pcap(filename, max_packets=100):
                     stamps.append(tsval)
 
     stamps = np.array(stamps)
-    print(f"{filename} Number of timestamps found: {len(stamps)}")
+    print(f"{filename} Number of tcp timestamps found: {len(stamps)}")
     stamps -= stamps[0]  # Normalize to start from 0
     stamps[0] = 0
     data = stamps[5:max_packets + 5]  # Limit to first 1000 timestamps for plotting
     return data
 
 
+def read_pcap_realstamps(filename, max_packets=140):
+    packets = rdpcap(filename)
+
+    if not packets:
+        raise ValueError("empty pcap")
+
+    base = packets[0].time              # keep full Decimal here
+    stamps = []
+
+    for pkt in packets:
+        if pkt.haslayer("TCP"):
+            stamps.append(float(pkt.time - base))   # *now* cast
+
+    stamps = np.asarray(stamps, dtype=np.float64)
+    data = stamps[5: max_packets + 5] * 1000  # convert to milliseconds
+    print(f"{filename}: {len(stamps)} TCP capture‑time stamps loaded")
+    return data
+
+
 # load and diff
+# stamps_covert_s = read_pcap("capture_covert_s.pcap")
 stamps_covert = read_pcap("capture_covert.pcap")
 stamps_normal = read_pcap("capture_normal.pcap")
+# stamps_normal = read_pcap("capture_normal.pcap")
+# stamps_covert_pcap = read_pcap_realstamps("capture_covert.pcap")
+# stamps_normal_pcap = read_pcap_realstamps("capture_normal.pcap")
 stamps_covert_delayed2 = read_pcap("capture_covert_2msdelay.pcap")
 stamps_normal_delayed2 = read_pcap("capture_normal_2msdelay.pcap")
 stamps_covert_delayed5 = read_pcap("capture_covert_5msdelay.pcap")
@@ -51,8 +74,10 @@ def remove_outliers(arr, thresh=3.0):
     return arr[z < thresh]
 
 
-diff_covert = remove_outliers(np.diff(stamps_covert), thresh=10.0)
-diff_normal = remove_outliers(np.diff(stamps_normal), thresh=10.0)
+diff_covert = np.diff(stamps_covert)
+diff_normal = np.diff(stamps_normal)
+# diff_normal_pcap = np.diff(stamps_normal_pcap)
+# diff_covert_pcap = np.diff(stamps_covert_pcap)
 diff_covert_d2 = remove_outliers(np.diff(stamps_covert_delayed2), thresh=3.0)
 diff_normal_d2 = remove_outliers(np.diff(stamps_normal_delayed2), thresh=3.0)
 diff_covert_d5 = remove_outliers(np.diff(stamps_covert_delayed5), thresh=3.0)
@@ -73,7 +98,10 @@ def normalize(arr):
 
 # normalize each
 n_covert = normalize(diff_covert)
+# n_covert_s = normalize(diff_covert_s)
 n_normal = normalize(diff_normal)
+# n_normal_pcap = normalize(diff_normal_pcap)
+# n_covert_pcap = normalize(diff_covert_pcap)
 n_covert_d2 = normalize(diff_covert_d2)
 n_normal_d2 = normalize(diff_normal_d2)
 n_covert_d5 = normalize(diff_covert_d5)
@@ -84,7 +112,7 @@ n_covert_d20 = normalize(diff_covert_d20)
 n_normal_d20 = normalize(diff_normal_d20)
 n_covert_d100 = normalize(diff_covert_d100)
 n_normal_d100 = normalize(diff_normal_d100)
-
+#
 # plot in 2×2 grid, each on its own scale 0–1
 fig, axs = plt.subplots(3, 2, figsize=(10, 8))
 
@@ -92,6 +120,14 @@ axs[0, 0].plot(n_covert, label="Covert")
 axs[0, 0].plot(n_normal, label="Normal")
 axs[0, 0].set_title("No Delay")
 axs[0, 0].legend()
+
+# plt.plot(n_covert, label="Covert")
+# # plt.plot(n_covert_s, label="Covert")
+# plt.plot(n_normal, label="Normal")
+# plt.plot(n_normal_pcap, label="Normal Pcap")
+# plt.plot(n_covert_pcap, label="Covert Pcap")
+# # plt.set_title("No Delay")
+# plt.legend()
 
 axs[0, 1].plot(n_covert_d2, label="Covert 2 ms")
 axs[0, 1].plot(n_normal_d2, label="Normal 2 ms")
@@ -120,9 +156,9 @@ axs[2, 1].legend()
 
 for ax in axs.flat:
     ax.set_xlabel("Packet Index")
-    ax.set_ylabel("Normalized Inter‑arrival Time")
+    ax.set_ylabel("Inter‑arrival Time")
 
 fig.suptitle("Covert vs. Normal Traffic Across Delays", y=0.98)
 plt.tight_layout(rect=[0, 0, 1, 0.96])
-# plt.savefig("covert_vs_normal_traffic_normalized.png", dpi=300, bbox_inches='tight')
+plt.savefig("covert_vs_normal_traffic.png", dpi=300, bbox_inches='tight')
 plt.show()

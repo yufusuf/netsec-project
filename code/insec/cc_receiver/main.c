@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     const char *secret_key = getenv("SECRET_KEY");
     cc = init_covert_channel(secret_key, 32, 3);
 
-    int total_blocks = 30;
+    int total_blocks = 100;
 
     cc->message = malloc(total_blocks * sizeof(unsigned char *));
 
